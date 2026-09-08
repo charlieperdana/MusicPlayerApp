@@ -8,30 +8,66 @@
 import SwiftUI
 
 struct SongPlayerView: View {
-    
     @ObservedObject var audioManager: AudioPlayerManager
-    
+
     var body: some View {
         if let song = audioManager.currentSong {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(song.title)
-                        .font(.headline)
-                    
-                    Text(song.artist)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(song.title)
+                            .font(.headline)
+                            .lineLimit(1)
+
+                        Text(song.artist)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button {
+                        audioManager.togglePlayPause()
+                    } label: {
+                        Image(systemName: audioManager.isPlaying ? "pause.fill" : "play.fill")
+                        .font(.title2)
+                    }
                 }
-                Spacer()
-                Button {
-                    audioManager.togglePlayPause()
-                } label: {
-                    Image(systemName: audioManager.isPlaying ? "pause.fill" : "play.fill")
+
+                // MARK: - Progress
+
+                VStack(spacing: 4) {
+                    Slider(value: Binding(
+                            get: {
+                                audioManager.currentTime
+                            },
+                            set: { newValue in
+                                audioManager.seek(to: newValue)
+                            }
+                        ), in: 0...max(audioManager.duration, 0.1)
+                    )
+
+                    HStack {
+                        Text(formatTime(audioManager.currentTime))
+                        Spacer()
+                        Text("-\(formatTime(max(audioManager.duration - audioManager.currentTime,0)))")
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
-                .font(.title2)
             }
             .padding()
             .background(.ultraThinMaterial)
         }
+    }
+
+    private func formatTime(_ time: TimeInterval) -> String {
+        guard time.isFinite else {
+            return "0:00"
+        }
+
+        let totalSeconds = max(Int(time), 0)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+
+        return String(format: "%d:%02d", minutes,seconds)
     }
 }
