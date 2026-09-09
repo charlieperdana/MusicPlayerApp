@@ -3,15 +3,17 @@ name: iOS CI/CD
 on:
   push:
     branches:
+      - main
       - master
 
   pull_request:
     branches:
+      - main
       - master
 
 jobs:
   test:
-    name: Build and Test
+    name: Build and Run Tests
     runs-on: macos-latest
 
     steps:
@@ -21,13 +23,30 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
+      - name: Show available simulators
+        run: xcrun simctl list devices available
+
+      - name: Select available iPhone simulator
+        run: |
+          SIMULATOR_ID=$(xcrun simctl list devices available | \
+            grep -m 1 -E 'iPhone.*\([A-F0-9-]+\)' | \
+            sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+
+          if [ -z "$SIMULATOR_ID" ]; then
+            echo "No available iPhone simulator found."
+            exit 1
+          fi
+
+          echo "Using simulator: $SIMULATOR_ID"
+          echo "SIMULATOR_ID=$SIMULATOR_ID" >> "$GITHUB_ENV"
+
       - name: Build and run tests
         run: |
           xcodebuild \
             -project MusicPlayerApp.xcodeproj \
             -scheme MusicPlayerApp \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
             clean test
 
   build:
@@ -42,7 +61,7 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Build app
+      - name: Build application
         run: |
           xcodebuild \
             -project MusicPlayerApp.xcodeproj \
