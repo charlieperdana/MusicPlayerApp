@@ -84,6 +84,7 @@ struct SongListView: View {
         }
         Task {
             await viewModel.search(artist: artistSearch)
+            player.setSongs(viewModel.songs)
         }
     }
 }
